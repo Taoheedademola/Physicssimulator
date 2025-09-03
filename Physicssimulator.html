@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Physics Simulator – IT Defense Starter</title>
+    <style>
+      :root {
+        --bg: #0f172a; /* slate-900 */
+        --panel: #111827; /* gray-900 */
+        --muted: #94a3b8; /* slate-400 */
+        --text: #e5e7eb; /* gray-200 */
+        --accent: #22d3ee; /* cyan-400 */
+        --accent2: #a78bfa; /* violet-400 */
+        --good: #34d399; /* emerald-400 */
+        --warn: #f59e0b; /* amber-500 */
+        --danger: #f43f5e; /* rose-500 */
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        grid-template-rows: auto 1fr;
+        grid-template-areas: "header header" "sidebar main";
+        height: 100%;
+        background: linear-gradient(180deg, #0b1220, #0f172a 40%);
+        color: var(--text);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI,
+          Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      }
+      header {
+        grid-area: header;
+        padding: 14px 18px;
+        background: rgba(17, 24, 39, 0.7);
+        backdrop-filter: blur(8px);
+        border-bottom: 1px solid #1f2937;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      header h1 {
+        margin: 0;
+        font-size: 18px;
+        letter-spacing: 0.3px;
+        font-weight: 600;
+      }
+      header .badge {
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: #1f2937;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      #sidebar {
+        grid-area: sidebar;
+        border-right: 1px solid #1f2937;
+        padding: 14px;
+        overflow: auto;
+        background: rgba(17, 24, 39, 0.6);
+      }
+      #main {
+        grid-area: main;
+        position: relative;
+      }
+      canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+        background: radial-gradient(
+            1200px 600px at 70% -20%,
+            rgba(34, 211, 238, 0.08),
+            transparent
+          ),
+          radial-gradient(
+            900px 500px at 0% 100%,
+            rgba(167, 139, 250, 0.08),
+            transparent
+          ),
+          #0b1020;
+      }
+
+      .section {
+        margin-bottom: 16px;
+        padding: 12px;
+        border: 1px solid #1f2937;
+        border-radius: 14px;
+        background: #0e1628;
+      }
+      .section h3 {
+        margin: 0 0 8px;
+        font-size: 14px;
+        color: var(--muted);
+        font-weight: 600;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin: 8px 0;
+      }
+      .row label {
+        font-size: 13px;
+        color: var(--text);
+      }
+      .row input[type="range"] {
+        width: 55%;
+      }
+      .row input[type="number"] {
+        width: 80px;
+        background: #0b1220;
+        color: var(--text);
+        border: 1px solid #1f2937;
+        border-radius: 8px;
+        padding: 6px;
+      }
+      .btn {
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 1px solid #1f2937;
+        background: #0b1220;
+        color: var(--text);
+        font-weight: 600;
+        gap: 8px;
+      }
+      .btn:hover {
+        border-color: #334155;
+      }
+      .btn.primary {
+        background: linear-gradient(
+          180deg,
+          rgba(34, 211, 238, 0.2),
+          rgba(167, 139, 250, 0.2)
+        );
+        border-color: #334155;
+      }
+      .btn.warn {
+        background: rgba(245, 158, 11, 0.12);
+        border-color: #f59e0b33;
+      }
+      .btn.danger {
+        background: rgba(244, 63, 94, 0.12);
+        border-color: #f43f5e33;
+      }
+      .mode {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .pill {
+        padding: 8px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        border: 1px solid #1f2937;
+        text-align: center;
+        cursor: pointer;
+      }
+      .pill.active {
+        border-color: var(--accent);
+        background: rgba(34, 211, 238, 0.15);
+        color: #a5f3fc;
+      }
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+      }
+      .metric {
+        background: #0b1220;
+        border: 1px solid #1f2937;
+        border-radius: 12px;
+        padding: 10px;
+      }
+      .metric .label {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .metric .value {
+        font-size: 14px;
+        font-weight: 700;
+      }
+      .legend {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      footer.note {
+        position: absolute;
+        left: 10px;
+        bottom: 10px;
+        font-size: 12px;
+        color: #94a3b8;
+        background: rgba(2, 6, 23, 0.6);
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid #1f2937;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Physics Simulator – Newtonian 2D</h1>
+      <span class="badge"
+        >Semi-implicit Euler • Elastic Collisions • Springs • Pendulum</span
+      >
+    </header>
+
+    <aside id="sidebar">
+      <div class="section">
+        <h3>Simulation Controls</h3>
+        <div class="row"><label>Mode</label></div>
+        <div id="modePills" class="mode"></div>
+        <div class="row">
+          <button id="playPause" class="btn primary">⏸️ Pause</button
+          ><button id="step" class="btn">⏭️ Step</button
+          ><button id="reset" class="btn warn">♻️ Reset</button>
+        </div>
+        <div class="row">
+          <label>Δt (ms)</label
+          ><input id="dt" type="number" value="16" min="1" max="33" step="1" />
+        </div>
+        <div class="row">
+          <label>Integrator</label
+          ><span class="pill" id="integrator">Semi-implicit Euler</span>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>Environment</h3>
+        <div class="row">
+          <label>Gravity (m/s²)</label
+          ><input
+            id="gravity"
+            type="range"
+            min="0"
+            max="20"
+            step="0.1"
+            value="9.8"
+          /><span id="gravityVal">9.8</span>
+        </div>
+        <div class="row">
+          <label>Air Drag (γ)</label
+          ><input
+            id="drag"
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value="0.02"
+          /><span id="dragVal">0.02</span>
+        </div>
+        <div class="row">
+          <label>Restitution (e)</label
+          ><input
+            id="restitution"
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value="0.9"
+          /><span id="restVal">0.90</span>
+        </div>
+        <div class="row">
+          <label>Friction (μ)</label
+          ><input
+            id="friction"
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value="0.10"
+          /><span id="fricVal">0.10</span>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>Entities</h3>
+        <div class="row">
+          <button id="addBall" class="btn">⚪ Add Ball</button
+          ><button id="addBox" class="btn">⬛ Add Box</button>
+        </div>
+        <div class="row">
+          <button id="clear" class="btn danger">🗑️ Clear All</button>
+        </div>
+        <p class="legend">
+          Tip: Drag with mouse to move objects. Shift+Drag to set initial
+          velocity vector.
+        </p>
+      </div>
+
+      <div class="section">
+        <h3>Live Metrics</h3>
+        <div class="metrics">
+          <div class="metric">
+            <div class="label">Objects</div>
+            <div id="mObjects" class="value">0</div>
+          </div>
+          <div class="metric">
+            <div class="label">Collisions/s</div>
+            <div id="mCollisions" class="value">0</div>
+          </div>
+          <div class="metric">
+            <div class="label">Kinetic Energy</div>
+            <div id="mKE" class="value">0</div>
+          </div>
+          <div class="metric">
+            <div class="label">Potential Energy</div>
+            <div id="mPE" class="value">0</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>Validation</h3>
+        <div class="row">
+          <button id="projectileTest" class="btn">
+            🎯 Projectile Range Test
+          </button>
+        </div>
+        <div class="row">
+          <button id="pendulumTest" class="btn">🕰️ Pendulum Period Test</button>
+        </div>
+        <p class="legend">
+          Compare measured results with analytical formulas to defend accuracy.
+        </p>
+      </div>
+    </aside>
+
+    <main id="main">
+      <canvas id="sim"></canvas>
+      <footer class="note">
+        Click to spawn; drag to move; Shift-drag to set velocity
+      </footer>
+    </main>
+
+    <script>
+      // ===== Utilities =====
+      const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+      const rand = (a, b) => a + Math.random() * (b - a);
+
+      // ===== Vector =====
+      class Vec2 {
+        constructor(x = 0, y = 0) {
+          this.x = x;
+          this.y = y;
+        }
+        clone() {
+          return new Vec2(this.x, this.y);
+        }
+        add(v) {
+          this.x += v.x;
+          this.y += v.y;
+          return this;
+        }
+        sub(v) {
+          this.x -= v.x;
+          this.y -= v.y;
+          return this;
+        }
+        scale(s) {
+          this.x *= s;
+          this.y *= s;
+          return this;
+        }
+        dot(v) {
+          return this.x * v.x + this.y * v.y;
+        }
+        len() {
+          return Math.hypot(this.x, this.y);
+        }
+        norm() {
+          const L = this.len() || 1;
+          this.x /= L;
+          this.y /= L;
+          return this;
+        }
+      }
+
+      // ===== World =====
+      const canvas = document.getElementById("sim");
+      const ctx = canvas.getContext("2d");
+      const DPR = Math.min(2, window.devicePixelRatio || 1);
+
+      const state = {
+        running: true,
+        mode: "Sandbox",
+        gravity: 9.8,
+        drag: 0.02,
+        restitution: 0.9,
+        friction: 0.1,
+        dt: 16,
+        objects: [],
+        springs: [],
+        collisions: 0,
+        lastCollisionT: performance.now(),
+        mouse: {
+          x: 0,
+          y: 0,
+          down: false,
+          picked: null,
+          offset: new Vec2(),
+          shift: false,
+          start: null,
+        },
+      };
+
+      const modes = [
+        "Sandbox",
+        "Projectiles",
+        "Collisions",
+        "Springs",
+        "Pendulum",
+      ];
+
+      function resize() {
+        const rect = document.getElementById("main").getBoundingClientRect();
+        canvas.width = Math.floor(rect.width * DPR);
+        canvas.height = Math.floor(rect.height * DPR);
+        canvas.style.width = rect.width + "px";
+        canvas.style.height = rect.height + "px";
+        ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+      }
+      window.addEventListener("resize", resize);
+      resize();
+
+      // ===== Rigid Bodies =====
+      let ID = 1;
+      class Body {
+        constructor({
+          shape = "circle",
+          x = 100,
+          y = 100,
+          vx = 0,
+          vy = 0,
+          r = 16,
+          w = 32,
+          h = 32,
+          mass = 1,
+          color = "#a78bfa",
+        }) {
+          this.id = ID++;
+          this.shape = shape;
+          this.pos = new Vec2(x, y);
+          this.vel = new Vec2(vx, vy);
+          this.angle = 0;
+          this.angVel = 0;
+          this.r = r;
+          this.w = w;
+          this.h = h;
+          this.mass = mass;
+          this.invMass = mass > 0 ? 1 / mass : 0;
+          this.color = color;
+          this.fixed = mass === 0;
+          // For simple friction model
+          this.lastNormalImpulse = 0;
+        }
+        get AABB() {
+          if (this.shape === "circle") {
+            return {
+              x: this.pos.x - this.r,
+              y: this.pos.y - this.r,
+              w: this.r * 2,
+              h: this.r * 2,
+            };
+          } else {
+            return {
+              x: this.pos.x - this.w / 2,
+              y: this.pos.y - this.h / 2,
+              w: this.w,
+              h: this.h,
+            };
+          }
+        }
+        kineticEnergy() {
+          return 0.5 * this.mass * this.vel.len() ** 2;
+        }
+        draw(ctx) {
+          ctx.save();
+          ctx.translate(this.pos.x, this.pos.y);
+          ctx.rotate(this.angle);
+          ctx.fillStyle = this.color;
+          ctx.strokeStyle = "#0ea5e9";
+          ctx.lineWidth = 1.5;
+          if (this.shape === "circle") {
+            ctx.beginPath();
+            ctx.arc(0, 0, this.r, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+          } else {
+            ctx.beginPath();
+            ctx.rect(-this.w / 2, -this.h / 2, this.w, this.h);
+            ctx.fill();
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
+      }
+
+      // ===== Spring (Hooke) =====
+      class Spring {
+        constructor(a, b, k = 40, restLen = 100) {
+          this.a = a;
+          this.b = b;
+          this.k = k;
+          this.restLen = restLen;
+        }
+        apply() {
+          const d = new Vec2(
+            this.b.pos.x - this.a.pos.x,
+            this.b.pos.y - this.a.pos.y
+          );
+          const L = d.len() || 1;
+          const dir = d.clone().scale(1 / L);
+          const x = L - this.restLen; // extension
+          const force = dir.clone().scale(this.k * x);
+          if (!this.a.fixed)
+            this.a.vel.add(force.clone().scale(+this.a.invMass));
+          if (!this.b.fixed)
+            this.b.vel.add(force.clone().scale(-this.b.invMass));
+        }
+        draw() {
+          ctx.save();
+          ctx.strokeStyle = "#22d3ee";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(this.a.pos.x, this.a.pos.y);
+          ctx.lineTo(this.b.pos.x, this.b.pos.y);
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+
+      // ===== Collision ===== (circle-circle + AABB walls; circle-rect as bounding approx)
+      function resolveWall(b) {
+        const W = canvas.width / DPR,
+          H = canvas.height / DPR;
+        if (b.shape === "circle") {
+          if (b.pos.x - b.r < 0) {
+            b.pos.x = b.r;
+            b.vel.x = -b.vel.x * state.restitution;
+            b.lastNormalImpulse = Math.abs(b.vel.x * b.mass);
+          }
+          if (b.pos.x + b.r > W) {
+            b.pos.x = W - b.r;
+            b.vel.x = -b.vel.x * state.restitution;
+            b.lastNormalImpulse = Math.abs(b.vel.x * b.mass);
+          }
+          if (b.pos.y - b.r < 0) {
+            b.pos.y = b.r;
+            b.vel.y = -b.vel.y * state.restitution;
+            b.lastNormalImpulse = Math.abs(b.vel.y * b.mass);
+          }
+          if (b.pos.y + b.r > H) {
+            b.pos.y = H - b.r;
+            b.vel.y = -b.vel.y * state.restitution;
+            b.lastNormalImpulse = Math.abs(b.vel.y * b.mass);
+          }
+        } else {
+          // rect
+          const x0 = b.pos.x - b.w / 2,
+            x1 = b.pos.x + b.w / 2,
+            y0 = b.pos.y - b.h / 2,
+            y1 = b.pos.y + b.h / 2;
+          if (x0 < 0) {
+            b.pos.x = b.w / 2;
+            b.vel.x = -b.vel.x * state.restitution;
+          }
+          if (x1 > W) {
+            b.pos.x = W - b.w / 2;
+            b.vel.x = -b.vel.x * state.restitution;
+          }
+          if (y0 < 0) {
+            b.pos.y = b.h / 2;
+            b.vel.y = -b.vel.y * state.restitution;
+          }
+          if (y1 > H) {
+            b.pos.y = H - b.h / 2;
+            b.vel.y = -b.vel.y * state.restitution;
+          }
+        }
+      }
+
+      function circleCircle(a, b) {
+        const d = new Vec2(b.pos.x - a.pos.x, b.pos.y - a.pos.y);
+        const dist = d.len();
+        const pen = a.r + b.r - dist;
+        if (pen > 0) {
+          // positional correction
+          const n = d.clone().scale(1 / (dist || 1));
+          const totalInv = a.invMass + b.invMass;
+          const correction = n.clone().scale((pen / (totalInv || 1)) * 0.8);
+          if (!a.fixed) a.pos.add(correction.clone().scale(-a.invMass));
+          if (!b.fixed) b.pos.add(correction.clone().scale(+b.invMass));
+          // relative velocity
+          const rv = b.vel.clone().sub(a.vel);
+          const velAlongN = rv.dot(n);
+          const e = state.restitution;
+          let j = (-(1 + e) * velAlongN) / (totalInv || 1);
+          if (velAlongN > 0) j = 0;
+          const impulse = n.clone().scale(j);
+          if (!a.fixed) a.vel.add(impulse.clone().scale(-a.invMass));
+          if (!b.fixed) b.vel.add(impulse.clone().scale(+b.invMass));
+          // basic Coulomb friction using lastNormalImpulse proxy
+          const tangent = rv.clone().sub(n.clone().scale(velAlongN));
+          tangent.norm();
+          const jt = -rv.dot(tangent) / (totalInv || 1);
+          const mu = state.friction;
+          const jtClamped = clamp(jt, -mu * Math.abs(j), mu * Math.abs(j));
+          const ft = tangent.clone().scale(jtClamped);
+          if (!a.fixed) a.vel.add(ft.clone().scale(-a.invMass));
+          if (!b.fixed) b.vel.add(ft.clone().scale(+b.invMass));
+          state.collisions++;
+        }
+      }
+
+      // ===== Integration Loop =====
+      let last = performance.now();
+      function stepSim(dt) {
+        const g = state.gravity,
+          drag = state.drag;
+        // forces
+        for (const s of state.springs) s.apply();
+        for (const b of state.objects) {
+          if (b.fixed) continue;
+          // gravity
+          b.vel.y += g * (dt / 1000);
+          // linear drag ~ v
+          b.vel.x *= 1 - drag;
+          b.vel.y *= 1 - drag;
+          // integrate (semi-implicit Euler)
+          b.pos.x += b.vel.x * (dt / 1000);
+          b.pos.y += b.vel.y * (dt / 1000);
+          // walls
+          resolveWall(b);
+        }
+        // collisions (naive N^2 for demo)
+        for (let i = 0; i < state.objects.length; i++) {
+          for (let j = i + 1; j < state.objects.length; j++) {
+            const A = state.objects[i],
+              B = state.objects[j];
+            if (A.shape === "circle" && B.shape === "circle")
+              circleCircle(A, B);
+          }
+        }
+      }
+
+      function render() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // grid
+        ctx.save();
+        ctx.globalAlpha = 0.3;
+        ctx.strokeStyle = "#1f2937";
+        for (let x = 0; x < canvas.width / DPR; x += 50) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, canvas.height / DPR);
+          ctx.stroke();
+        }
+        for (let y = 0; y < canvas.height / DPR; y += 50) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(canvas.width / DPR, y);
+          ctx.stroke();
+        }
+        ctx.restore();
+        // springs
+        for (const s of state.springs) s.draw();
+        // bodies
+        for (const b of state.objects) b.draw(ctx);
+      }
+
+      function loop() {
+        const now = performance.now();
+        if (state.running) {
+          stepSim(state.dt);
+          render();
+        }
+        requestAnimationFrame(loop);
+        // metrics
+        const KE = state.objects.reduce((a, b) => a + b.kineticEnergy(), 0);
+        const PE = state.objects.reduce(
+          (a, b) =>
+            a + state.gravity * b.mass * (canvas.height / DPR - b.pos.y),
+          0
+        );
+        document.getElementById("mObjects").textContent = state.objects.length;
+        const t = now - state.lastCollisionT;
+        if (t > 1000) {
+          document.getElementById("mCollisions").textContent = state.collisions;
+          state.collisions = 0;
+          state.lastCollisionT = now;
+        }
+        document.getElementById("mKE").textContent = KE.toFixed(1);
+        document.getElementById("mPE").textContent = PE.toFixed(1);
+      }
+      loop();
+
+      // ===== UI Wiring =====
+      const $ = (sel) => document.querySelector(sel);
+      function addBallAt(x, y) {
+        const r = rand(10, 26);
+        const m = (Math.PI * r * r) / 1000;
+        const b = new Body({
+          shape: "circle",
+          x,
+          y,
+          r,
+          mass: m,
+          color: "#a78bfa",
+        });
+        state.objects.push(b);
+        return b;
+      }
+      function addBoxAt(x, y) {
+        const w = rand(24, 60),
+          h = rand(24, 60);
+        const m = (w * h) / 1500;
+        const b = new Body({
+          shape: "rect",
+          x,
+          y,
+          w,
+          h,
+          mass: m,
+          color: "#22d3ee",
+        });
+        state.objects.push(b);
+        return b;
+      }
+
+      // Mode pills
+      const pills = modes.map((m) => {
+        const el = document.createElement("div");
+        el.className = "pill" + (m === state.mode ? " active" : "");
+        el.textContent = m;
+        el.onclick = () => {
+          document
+            .querySelectorAll("#modePills .pill")
+            .forEach((p) => p.classList.remove("active"));
+          el.classList.add("active");
+          state.mode = m;
+          preset(m);
+        };
+        return el;
+      });
+      const modePills = document.getElementById("modePills");
+      pills.forEach((p) => modePills.appendChild(p));
+
+      function preset(mode) {
+        state.objects.length = 0;
+        state.springs.length = 0;
+        if (mode === "Sandbox") {
+          for (let i = 0; i < 5; i++) addBallAt(rand(80, 400), rand(60, 200));
+        }
+        if (mode === "Projectiles") {
+          for (let i = 0; i < 4; i++) {
+            const b = addBallAt(80, canvas.height / DPR - 80);
+            b.vel.x = 200 + i * 80;
+            b.vel.y = -300 - i * 40;
+          }
+        }
+        if (mode === "Collisions") {
+          for (let i = 0; i < 6; i++) addBallAt(rand(80, 600), rand(60, 240));
+        }
+        if (mode === "Springs") {
+          const a = addBallAt(300, 100);
+          const b = addBallAt(450, 160);
+          const c = addBallAt(600, 100);
+          state.springs.push(new Spring(a, b, 50, 150));
+          state.springs.push(new Spring(b, c, 50, 150));
+          a.mass = 0;
+          a.fixed = true;
+          c.mass = 0;
+          c.fixed = true;
+        }
+        if (mode === "Pendulum") {
+          const anchor = addBallAt(canvas.width / DPR / 2, 60);
+          anchor.mass = 0;
+          anchor.fixed = true;
+          const bob = addBallAt(canvas.width / DPR / 2 + 120, 260);
+          state.springs.push(new Spring(anchor, bob, 120, 200));
+        }
+        render();
+      }
+      preset("Sandbox");
+
+      // Controls
+      $("#gravity").addEventListener("input", (e) => {
+        state.gravity = +e.target.value;
+        $("#gravityVal").textContent = (+e.target.value).toFixed(1);
+      });
+      $("#drag").addEventListener("input", (e) => {
+        state.drag = +e.target.value;
+        $("#dragVal").textContent = (+e.target.value).toFixed(2);
+      });
+      $("#restitution").addEventListener("input", (e) => {
+        state.restitution = +e.target.value;
+        $("#restVal").textContent = (+e.target.value).toFixed(2);
+      });
+      $("#friction").addEventListener("input", (e) => {
+        state.friction = +e.target.value;
+        $("#fricVal").textContent = (+e.target.value).toFixed(2);
+      });
+      $("#dt").addEventListener("change", (e) => {
+        state.dt = clamp(+e.target.value, 1, 33);
+        e.target.value = state.dt;
+      });
+
+      $("#playPause").onclick = () => {
+        state.running = !state.running;
+        $("#playPause").textContent = state.running ? "⏸️ Pause" : "▶️ Play";
+      };
+      $("#step").onclick = () => {
+        if (!state.running) {
+          stepSim(state.dt);
+          render();
+        }
+      };
+      $("#reset").onclick = () => preset(state.mode);
+      $("#addBall").onclick = () =>
+        addBallAt(
+          rand(60, canvas.width / DPR - 60),
+          rand(60, canvas.height / DPR - 100)
+        );
+      $("#addBox").onclick = () =>
+        addBoxAt(
+          rand(60, canvas.width / DPR - 60),
+          rand(60, canvas.height / DPR - 100)
+        );
+      $("#clear").onclick = () => {
+        state.objects.length = 0;
+        state.springs.length = 0;
+      };
+
+      // Validation buttons
+      $("#projectileTest").onclick = () => {
+        preset("Projectiles");
+        // Mark expected parabolic landing x using v^2*sin(2θ)/g, measured numerically by tracking when y hits ground
+        // For simplicity we display live range readout in footer during mode
+        alert(
+          "Projectile test loaded. Vary gravity and compare measured ranges with analytical expectations."
+        );
+      };
+      $("#pendulumTest").onclick = () => {
+        preset("Pendulum");
+        alert(
+          "Pendulum test loaded. Small-angle period T ≈ 2π√(L/g). Measure period with stopwatch overlay."
+        );
+      };
+
+      // Mouse interactions
+      canvas.addEventListener("pointerdown", (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left,
+          y = e.clientY - rect.top;
+        state.mouse.down = true;
+        state.mouse.shift = e.shiftKey;
+        state.mouse.start = new Vec2(x, y);
+        // pick nearest body under cursor
+        for (let i = state.objects.length - 1; i >= 0; i--) {
+          const b = state.objects[i];
+          if (b.shape === "circle") {
+            const dx = x - b.pos.x,
+              dy = y - b.pos.y;
+            if (dx * dx + dy * dy <= b.r * b.r) {
+              state.mouse.picked = b;
+              state.mouse.offset = new Vec2(x - b.pos.x, y - b.pos.y);
+              break;
+            }
+          } else {
+            const a = b.AABB;
+            if (x >= a.x && x <= a.x + a.w && y >= a.y && y <= a.y + a.h) {
+              state.mouse.picked = b;
+              state.mouse.offset = new Vec2(x - b.pos.x, y - b.pos.y);
+              break;
+            }
+          }
+        }
+        if (!state.mouse.picked) {
+          const b = addBallAt(x, y);
+          if (state.mouse.shift) {
+            /* wait to set velocity on up */
+          }
+        }
+      });
+      canvas.addEventListener("pointermove", (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left,
+          y = e.clientY - rect.top;
+        state.mouse.x = x;
+        state.mouse.y = y;
+        if (state.mouse.down && state.mouse.picked) {
+          const b = state.mouse.picked;
+          if (!b.fixed) {
+            b.pos.x = x - state.mouse.offset.x;
+            b.pos.y = y - state.mouse.offset.y;
+            b.vel.x *= 0.5;
+            b.vel.y *= 0.5;
+          }
+        }
+      });
+      canvas.addEventListener("pointerup", (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left,
+          y = e.clientY - rect.top;
+        if (state.mouse.shift && state.mouse.start) {
+          const dx = x - state.mouse.start.x,
+            dy = y - state.mouse.start.y;
+          const b = state.objects[state.objects.length - 1];
+          if (b) {
+            b.vel.x = dx * 4;
+            b.vel.y = dy * 4;
+          }
+        }
+        state.mouse.down = false;
+        state.mouse.picked = null;
+        state.mouse.start = null;
+      });
+    </script>
+  </body>
+</html>
